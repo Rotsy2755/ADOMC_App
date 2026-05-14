@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ADOMC
 =====
 
@@ -194,3 +195,7 @@ Distribué sous licence **MIT**. Voir le fichier [`LICENSE`](LICENSE).
 ---
 
 *ADOMC — version 1.0.0 — contact : `tahiriniaina.rotsy@adomc.local`*
+=======
+# ADOMC_App
+Aide à la Décision Multi-Objectifs et Multi-Critères — plateforme Symfony 7 pour le choix humanitaire.
+>>>>>>> f893ba710c8c74f0bc6156d0de930f87f5394b52
