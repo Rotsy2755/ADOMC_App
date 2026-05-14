@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+{% block title %}Problèmes MOKP — ADOMC{% endblock %}
+{% block body %}
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-puzzle-piece"></i> Problèmes MOKP</div>
+            <div class="card-subtitle">{{ problems|length }} problème(s) dans vos projets</div>
+        </div>
+        <a href="{{ path('app_problem_new') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nouveau problème</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Nom</th><th>Projet</th><th>n × p</th><th>Capacité W</th><th>Statut</th><th>Progression</th><th></th></tr></thead>
+            <tbody>
+                {% for p in problems %}
+                    <tr>
+                        <td class="fw-semibold">{{ p.name }}</td>
+                        <td>{{ p.project.name }}</td>
+                        <td>{{ p.items|length }} × {{ p.objectiveCount }}</td>
+                        <td>{{ p.capacity }}</td>
+                        <td>
+                            {% set cls = {'draft':'badge-warning','computing':'badge-info','done':'badge-success','failed':'badge-danger'} %}
+                            <span class="badge-custom {{ cls[p.status] ?? 'badge-info' }}">{{ p.status }}</span>
+                        </td>
+                        <td style="min-width:140px;">
+                            <div class="progress"><div class="progress-bar" style="width: {{ p.progress }}%;"></div></div>
+                            <small class="text-muted">{{ p.progress }}%</small>
+                        </td>
+                        <td>
+                            <a href="{{ path('app_problem_show', {id: p.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-eye"></i></a>
+                            <a href="{{ path('app_problem_edit', {id: p.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-edit"></i></a>
+                            <form method="post" action="{{ path('app_problem_delete', {id: p.id}) }}" style="display:inline;" onsubmit="return confirm('Supprimer ce problème ?');">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token('problem_delete_' ~ p.id) }}">
+                                <button class="btn btn-outline btn-sm" style="color: var(--accent-danger);"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="text-center py-4 text-secondary"><i class="fas fa-inbox fa-2x mb-2"></i><br>Aucun problème</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

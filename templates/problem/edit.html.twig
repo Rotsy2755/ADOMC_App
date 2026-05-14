@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+{% block title %}Éditer — {{ problem.name }}{% endblock %}
+{% block body %}
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-edit"></i> Éditer le problème</div>
+            <div class="card-subtitle">Un snapshot sera créé avant modification</div>
+        </div>
+        <a href="{{ path('app_problem_show', {id: problem.id}) }}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+    {% include 'problem/_form.html.twig' %}
+</div>
+{% endblock %}

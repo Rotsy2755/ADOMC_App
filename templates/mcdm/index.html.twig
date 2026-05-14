@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Méthodes MCDM — ADOMC{% endblock %}
+
+{% block body %}
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-layer-group"></i> Agrégation MCDM</div>
+            <div class="card-subtitle">TOPSIS, VIKOR, PROMETHEE II, ELECTRE I — choisissez un problème pour déclencher un calcul.</div>
+        </div>
+        <a href="{{ path('app_problem_index') }}" class="btn btn-outline btn-sm"><i class="fas fa-list"></i> Problèmes</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Problème</th><th>Projet</th><th>Pondérations AHP</th><th>Résultats MCDM</th><th></th></tr></thead>
+            <tbody>
+                {% for p in problems %}
+                    <tr>
+                        <td class="fw-semibold">{{ p.name }}</td>
+                        <td>{{ p.project.name }}</td>
+                        <td><span class="badge-custom badge-info">{{ p.ahpMatrices|length }}</span></td>
+                        <td><span class="badge-custom badge-success">{{ p.mcdmResults|length }}</span></td>
+                        <td><a href="{{ path('app_mcdm_show', {id: p.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-play"></i> Calculer</a></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="text-center text-secondary py-4">Aucun problème disponible</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}AHP — {{ problem.name }}{% endblock %}
+
+{% block body %}
+{% set objLabels = problem.objectiveLabels %}
+<div class="dashboard-card mb-4">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-balance-scale"></i> Matrice AHP — {{ problem.name }}</div>
+            <div class="card-subtitle">
+                Saisissez la matrice de comparaison par paires (échelle de Saaty 1–9).
+                L'application calcule le vecteur de poids par moyenne géométrique et contrôle la cohérence (CR &lt; 0,10).
+            </div>
+        </div>
+        <a href="{{ path('app_problem_show', {id: problem.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+
+    <form method="post" action="{{ path('app_ahp_show', {id: problem.id}) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('ahp_' ~ problem.id) }}">
+        <div class="mb-3">
+            <label class="form-label">Nom du scénario</label>
+            <input type="text" name="label" class="form-control" value="Scénario {{ problem.ahpMatrices|length + 1 }}" maxlength="255" required>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm text-center align-middle" style="max-width: 700px;">
+                <thead>
+                    <tr>
+                        <th></th>
+                        {% for lbl in problem.objectives %}<th>f{{ loop.index }} — {{ lbl }}</th>{% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in 0..(n - 1) %}
+                        <tr>
+                            <th class="text-start">f{{ i + 1 }} — {{ objLabels[i] ?? '' }}</th>
+                            {% for j in 0..(n - 1) %}
+                                <td>
+                                    {% if i == j %}
+                                        <input type="number" step="0.001" min="1" max="1" value="1" readonly class="form-control form-control-sm text-center">
+                                    {% elseif j > i %}
+                                        <input type="number" step="0.001" min="0.111" max="9" name="matrix[{{ i }}][{{ j }}]" class="form-control form-control-sm text-center" value="1" required>
+                                    {% else %}
+                                        <span class="text-muted">réciproque</span>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3 d-flex gap-2">
+            <button type="submit" name="save" value="0" class="btn btn-outline"><i class="fas fa-calculator"></i> Calculer</button>
+            <button type="submit" name="save" value="1" class="btn btn-primary"><i class="fas fa-save"></i> Calculer et enregistrer</button>
+        </div>
+    </form>
+</div>
+
+{% if computed is not null %}
+<div class="dashboard-card mb-4">
+    <div class="card-title"><i class="fas fa-chart-pie"></i> Résultats du calcul</div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-3">
+            <div class="stat-label">λ max</div>
+            <div class="stat-value" style="font-size:22px;">{{ computed.lambdaMax|number_format(4, '.', ' ') }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-label">Consistency Index (CI)</div>
+            <div class="stat-value" style="font-size:22px;">{{ computed.ci|number_format(4, '.', ' ') }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-label">Consistency Ratio (CR)</div>
+            <div class="stat-value" style="font-size:22px; color: {% if computed.consistent %}var(--accent-success){% else %}var(--accent-danger){% endif %};">
+                {{ computed.cr|number_format(4, '.', ' ') }}
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-label">Cohérence</div>
+            <div class="stat-value" style="font-size:22px;">
+                {% if computed.consistent %}
+                    <span class="badge-custom badge-success">OK (&lt; 0,10)</span>
+                {% else %}
+                    <span class="badge-custom badge-danger">INCOHÉRENTE</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive mt-4">
+        <table class="table table-sm">
+            <thead><tr><th>Critère</th><th>Poids λ</th></tr></thead>
+            <tbody>
+                {% for w in computed.weights %}
+                    <tr>
+                        <td>f{{ loop.index }} — {{ objLabels[loop.index0] ?? '' }}</td>
+                        <td><strong>{{ w|number_format(4, '.', ' ') }}</strong></td>
+                    </tr>
+                {% endfor %}
+                <tr><td><em>Somme</em></td><td><strong>{{ computed.weights|reduce((a, b) => a + b, 0)|number_format(4, '.', ' ') }}</strong></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="dashboard-card">
+    <div class="card-title"><i class="fas fa-history"></i> Scénarios enregistrés</div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>#</th><th>Label</th><th>CR</th><th>Cohérence</th><th>Poids</th><th>Date</th></tr></thead>
+            <tbody>
+                {% for m in existing %}
+                    <tr {% if savedId == m.id %}style="background: rgba(16,185,129,0.1);"{% endif %}>
+                        <td>#{{ m.id }}</td>
+                        <td>{{ m.label }}</td>
+                        <td>{{ m.cr|number_format(4, '.', ' ') }}</td>
+                        <td>
+                            {% if m.consistent %}<span class="badge-custom badge-success">OK</span>
+                            {% else %}<span class="badge-custom badge-danger">NOK</span>{% endif %}
+                        </td>
+                        <td><code>[{% for w in m.weights %}{{ w|number_format(3, '.', ' ') }}{% if not loop.last %}, {% endif %}{% endfor %}]</code></td>
+                        <td>{{ m.createdAt|date('d/m/Y H:i') }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="text-center text-secondary py-4">Aucun scénario AHP enregistré</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Analyse #{{ analysis.id }} — ADOMC{% endblock %}
+
+{% block body %}
+<div class="dashboard-card mb-4">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-sliders-h"></i> Analyse de sensibilité #{{ analysis.id }}</div>
+            <div class="card-subtitle">
+                Critère f{{ analysis.criterion + 1 }} — {{ problem.objectiveLabels[analysis.criterion] ?? '' }} ·
+                λ<sub>{{ analysis.criterion + 1 }}</sub> ∈ [{{ analysis.minValue|number_format(2, '.', ' ') }} ; {{ analysis.maxValue|number_format(2, '.', ' ') }}]
+                · pas = {{ analysis.step|number_format(2, '.', ' ') }}
+            </div>
+        </div>
+        <a href="{{ path('app_sensitivity_show', {id: problem.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+
+    <div class="alert alert-info">{{ analysis.summary }}</div>
+
+    <div class="row g-3">
+        <div class="col-md-3">
+            <div class="stat-label">Configurations testées</div>
+            <div class="stat-value" style="font-size:24px;">{{ analysis.configurations|length }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-label">Solutions robustes</div>
+            <div class="stat-value" style="font-size:24px; color: var(--accent-success);">{{ analysis.robustSolutions|length }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-label">Seuil de robustesse</div>
+            <div class="stat-value" style="font-size:24px;">{{ (analysis.robustnessThreshold * 100)|number_format(0, '.', ' ') }} %</div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-label">Top-k</div>
+            <div class="stat-value" style="font-size:24px;">{{ analysis.topK }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-card mb-4">
+    <div class="card-title"><i class="fas fa-trophy"></i> Solutions robustes</div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>#</th><th>Solution</th><th>Robustesse</th><th>Nb top-1</th><th>Intervalle dominant de λ</th></tr></thead>
+            <tbody>
+                {% for r in analysis.robustSolutions %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>Solution #{{ r.solution_id }}</strong></td>
+                        <td><div class="progress"><div class="progress-bar" style="width: {{ (r.robustness * 100)|number_format(1, '.', ' ') }}%;"></div></div><small>{{ (r.robustness * 100)|number_format(1, '.', ' ') }} %</small></td>
+                        <td>{{ r.top1_count }}</td>
+                        <td>
+                            {% if r.dominant_interval %}
+                                [{{ r.dominant_interval[0]|number_format(2, '.', ' ') }} ; {{ r.dominant_interval[1]|number_format(2, '.', ' ') }}]
+                            {% else %}—{% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="text-center text-secondary py-4">Aucune solution robuste</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="dashboard-card">
+    <div class="card-title"><i class="fas fa-table"></i> Configurations détaillées</div>
+    <div id="sens-chart" style="width:100%; height: 360px;"></div>
+    <div class="table-responsive mt-3" style="max-height: 400px; overflow-y: auto;">
+        <table class="table table-sm">
+            <thead><tr><th>λ<sub>k</sub></th><th>Top-1</th><th>Top-{{ analysis.topK }} (ordonné)</th></tr></thead>
+            <tbody>
+                {% for c in analysis.configurations %}
+                    {% set top1 = c.rankings[0] ?? null %}
+                    <tr>
+                        <td>{{ c.lambda_k|number_format(3, '.', ' ') }}</td>
+                        <td><strong>#{{ top1 ? top1.solution_id : '-' }}</strong></td>
+                        <td>
+                            {% for r in c.rankings|slice(0, analysis.topK) %}
+                                <span class="badge-custom badge-info">#{{ r.solution_id }}</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const configs = {{ analysis.configurations|json_encode|raw }};
+    if (!configs || configs.length === 0) return;
+    const xs = configs.map(c => c.lambda_k);
+    const ys = configs.map(c => (c.rankings && c.rankings[0]) ? c.rankings[0].solution_id : 0);
+    Plotly.newPlot('sens-chart', [{
+        x: xs, y: ys, mode: 'lines+markers', type: 'scatter',
+        line: {shape: 'hv', color: '#3b82f6'}, marker: {color: '#8b5cf6', size: 8}
+    }], {
+        title: 'Top-1 en fonction de λ (critère balayé)',
+        xaxis: {title: 'λ_k', gridcolor: '#334155'},
+        yaxis: {title: 'id de la solution top-1', gridcolor: '#334155'},
+        plot_bgcolor: '#0f172a', paper_bgcolor: '#0f172a', font: {color: '#e2e8f0'}
+    }, {responsive: true});
+});
+</script>
+{% endblock %}

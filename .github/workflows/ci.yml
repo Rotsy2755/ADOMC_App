@@ -1,0 +1,113 @@
+name: ADOMC CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    name: Lint, static analysis, tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: mokp_test
+          MYSQL_USER: app
+          MYSQL_PASSWORD: secret
+          MYSQL_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s --health-timeout=3s --health-retries=20
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: intl, pdo_mysql, sodium, zip, bcmath, opcache
+          coverage: xdebug
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: PHP-CS-Fixer (dry-run)
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff -v
+        continue-on-error: true
+
+      - name: PHPStan (level 8)
+        run: vendor/bin/phpstan analyse -l 8 src
+        continue-on-error: true
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/mokp_test?serverVersion=8.0
+          APP_ENV: test
+        run: php bin/console doctrine:migrations:migrate --no-interaction
+
+      - name: PHPUnit (unit + integration)
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/mokp_test?serverVersion=8.0
+          APP_ENV: test
+        run: vendor/bin/phpunit --colors=always --coverage-clover var/coverage/clover.xml
+
+      - name: Upload coverage artefact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: var/coverage/
+
+  deploy:
+    name: Deploy to VPS
+    needs: quality
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: intl, pdo_mysql, sodium, zip, bcmath
+
+      - name: Production install
+        run: composer install --no-dev --no-interaction --optimize-autoloader
+
+      - name: Deploy via rsync
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avzr --delete --exclude='.git' --exclude='var/cache' --exclude='var/log'
+          path: ./
+          remote_path: ${{ secrets.DEPLOY_PATH }}
+          remote_host: ${{ secrets.DEPLOY_HOST }}
+          remote_user: ${{ secrets.DEPLOY_USER }}
+          remote_key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Remote migrate + reload PHP-FPM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+            php bin/console cache:clear --env=prod --no-debug
+            php bin/console cache:warmup --env=prod --no-debug
+            sudo systemctl reload php8.3-fpm
+            sudo supervisorctl restart adomc-worker:*

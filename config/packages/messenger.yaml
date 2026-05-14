@@ -1,0 +1,18 @@
+framework:
+    messenger:
+        failure_transport: failed
+
+        transports:
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                retry_strategy:
+                    max_retries: 3
+                    multiplier: 2
+                    delay: 1000
+            failed: 'doctrine://default?queue_name=failed'
+
+        routing:
+            App\Message\ComputeParetoMessage: async
+            App\Message\ComputeMcdmMessage: async
+            App\Message\ComputeSensitivityMessage: async
+            App\Message\SendReportEmailMessage: async

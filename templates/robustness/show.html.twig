@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Robustesse — {{ problem.name }}{% endblock %}
+
+{% block body %}
+<div class="dashboard-card mb-4">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-shield-halved"></i> Indicateur de robustesse combiné — {{ problem.name }}</div>
+            <div class="card-subtitle">
+                R(s) = α · R<sub>p</sub>(s) + (1 − α) · R<sub>m</sub>(s). α pondère la stabilité Pareto et la stabilité MCDM.
+            </div>
+        </div>
+        <a href="{{ path('app_problem_show', {id: problem.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+
+    {% if matrices|length == 0 %}
+        <div class="alert alert-warning">Aucune pondération AHP disponible — enregistrez-en une pour lancer l'analyse.</div>
+    {% elseif problem.paretoCount == 0 %}
+        <div class="alert alert-warning">
+            <strong>Front de Pareto non disponible.</strong><br>
+            L'analyse de robustesse perturbe le front existant : lancez d'abord le calcul depuis <a href="{{ path('app_problem_show', {id: problem.id}) }}">la fiche du problème</a> et vérifiez que le worker asynchrone est actif (<code>worker.bat</code>).
+        </div>
+    {% else %}
+    <form method="post" action="{{ path('app_robustness_show', {id: problem.id}) }}" class="row g-3">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('robustness_' ~ problem.id) }}">
+        <div class="col-md-4">
+            <label class="form-label">Pondération AHP</label>
+            <select name="ahp_matrix_id" class="form-select" required>
+                {% for m in matrices %}
+                    <option value="{{ m.id }}" {% if selectedMatrixId == m.id %}selected{% endif %}>#{{ m.id }} — {{ m.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">α (0–1)</label>
+            <input type="number" step="0.05" min="0" max="1" name="alpha" value="{{ alpha }}" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Top-k</label>
+            <input type="number" step="1" min="1" max="20" name="top_k" value="{{ topK }}" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Échantillons MCDM</label>
+            <input type="number" step="10" min="10" max="1000" name="samples" value="{{ samples }}" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Voisins Pareto</label>
+            <input type="number" step="1" min="5" max="100" name="neighbours" value="{{ neighbours }}" class="form-control">
+        </div>
+        <div class="col-12"><button type="submit" class="btn btn-primary"><i class="fas fa-play"></i> Calculer R(s)</button></div>
+    </form>
+    {% endif %}
+</div>
+
+{% if result is not null and result|length > 0 %}
+<div class="dashboard-card">
+    <div class="card-title"><i class="fas fa-chart-bar"></i> Résultats — R(s) décroissant</div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>#</th><th>Solution</th><th>R<sub>p</sub> (Pareto)</th><th>R<sub>m</sub> (MCDM)</th><th>R(s) combinée</th></tr></thead>
+            <tbody>
+                {% for r in result %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td class="fw-semibold">#{{ r.id }}</td>
+                        <td>
+                            <div class="progress"><div class="progress-bar" style="width: {{ (r.Rp * 100)|number_format(1, '.', ' ') }}%; background: var(--accent-cyan);"></div></div>
+                            <small>{{ (r.Rp * 100)|number_format(1, '.', ' ') }} %</small>
+                        </td>
+                        <td>
+                            <div class="progress"><div class="progress-bar" style="width: {{ (r.Rm * 100)|number_format(1, '.', ' ') }}%; background: var(--accent-purple);"></div></div>
+                            <small>{{ (r.Rm * 100)|number_format(1, '.', ' ') }} %</small>
+                        </td>
+                        <td>
+                            <div class="progress"><div class="progress-bar" style="width: {{ (r.R * 100)|number_format(1, '.', ' ') }}%; background: var(--accent-success);"></div></div>
+                            <strong>{{ (r.R * 100)|number_format(1, '.', ' ') }} %</strong>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

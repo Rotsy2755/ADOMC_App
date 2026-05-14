@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un compte — ADOMC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 440px;
+        }
+        .brand { text-align: center; margin-bottom: 30px; }
+        .brand i { font-size: 48px; color: #3b82f6; }
+        .brand h2 { color: #f8fafc; margin-top: 15px; }
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid #334155;
+            color: #f8fafc;
+        }
+        .form-control:focus {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: #3b82f6;
+            color: #f8fafc;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+        }
+        .btn-primary { background-color: #3b82f6; border-color: #3b82f6; width: 100%; padding: 12px; }
+        .btn-primary:hover { background-color: #2563eb; border-color: #2563eb; }
+        a { color: #3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="brand">
+            <i class="fas fa-user-plus"></i>
+            <h2>Créer un compte</h2>
+            <p class="text-secondary">Plateforme ADOMC — décision multi-critères</p>
+        </div>
+
+        {% for label, messages in app.flashes(['danger','success','info','warning']) %}
+            {% for m in messages %}
+                <div class="alert alert-{{ label }}">{{ m }}</div>
+            {% endfor %}
+        {% endfor %}
+
+        <form method="post" action="{{ path('app_register') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('register') }}">
+            <div class="mb-3">
+                <label class="form-label text-light">Nom complet</label>
+                <input type="text" name="fullName" class="form-control" maxlength="120" required autofocus>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-light">Adresse e-mail</label>
+                <input type="email" name="email" class="form-control" maxlength="180" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-light">Mot de passe (≥ 8 caractères)</label>
+                <input type="password" name="password" class="form-control" minlength="8" required>
+            </div>
+            <button class="btn btn-primary" type="submit"><i class="fas fa-user-plus"></i> Créer le compte</button>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="{{ path('app_login') }}"><i class="fas fa-sign-in-alt"></i> J'ai déjà un compte</a>
+        </div>
+    </div>
+</body>
+</html>

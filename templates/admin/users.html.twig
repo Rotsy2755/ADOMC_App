@@ -1,0 +1,66 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Utilisateurs — Administration{% endblock %}
+
+{% block body %}
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-users"></i> Utilisateurs</div>
+            <div class="card-subtitle">Activation / désactivation des comptes et attribution du rôle administrateur.</div>
+        </div>
+        <a href="{{ path('app_admin_dashboard') }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th><th>E-mail</th><th>Nom</th><th>Rôles</th><th>Statut</th>
+                    <th>Dernière connexion</th><th>Créé</th><th>Projets</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                    <tr>
+                        <td>#{{ u.id }}</td>
+                        <td class="fw-semibold">{{ u.email }}</td>
+                        <td>{{ u.fullName }}</td>
+                        <td>
+                            {% for r in u.roles %}
+                                <span class="badge-custom {% if r == 'ROLE_ADMIN' %}badge-danger{% else %}badge-info{% endif %}">{{ r|replace({'ROLE_': ''}) }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if u.enabled %}
+                                <span class="badge-custom badge-success">actif</span>
+                            {% else %}
+                                <span class="badge-custom badge-danger">désactivé</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ u.lastLoginAt ? u.lastLoginAt|date('d/m/Y H:i') : '—' }}</small></td>
+                        <td><small>{{ u.createdAt|date('d/m/Y') }}</small></td>
+                        <td>{{ u.projects|length }}</td>
+                        <td>
+                            <form method="post" action="{{ path('app_admin_user_toggle', {id: u.id}) }}" style="display:inline;">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin_toggle_' ~ u.id) }}">
+                                <button type="submit" class="btn btn-outline btn-sm" title="{% if u.enabled %}Désactiver{% else %}Activer{% endif %}">
+                                    <i class="fas {% if u.enabled %}fa-ban{% else %}fa-check{% endif %}"></i>
+                                </button>
+                            </form>
+                            <form method="post" action="{{ path('app_admin_user_promote', {id: u.id}) }}" style="display:inline;">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin_promote_' ~ u.id) }}">
+                                <button type="submit" class="btn btn-outline btn-sm" title="Basculer ROLE_ADMIN">
+                                    <i class="fas fa-user-shield"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="9" class="text-center text-secondary py-4">Aucun utilisateur</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

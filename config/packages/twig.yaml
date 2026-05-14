@@ -1,0 +1,5 @@
+twig:
+    default_path: '%kernel.project_dir%/templates'
+    globals:
+        app_name: 'ADOMC'
+        app_subtitle: 'Aide à la Décision Multi-Objectifs et Multi-Critères'

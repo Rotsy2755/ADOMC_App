@@ -1,0 +1,96 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Comparaison de scénarios — {{ problem.name }}{% endblock %}
+
+{% block body %}
+<div class="dashboard-card mb-4">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-columns"></i> Comparaison de scénarios — {{ problem.name }}</div>
+            <div class="card-subtitle">
+                Chargez jusqu'à {{ maxScenarios }} pondérations AHP pour visualiser simultanément les classements TOPSIS sur le front de Pareto.
+            </div>
+        </div>
+        <a href="{{ path('app_problem_show', {id: problem.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+
+    {% if matrices|length == 0 %}
+        <div class="alert alert-warning">Aucune pondération AHP disponible.</div>
+    {% elseif problem.paretoCount == 0 %}
+        <div class="alert alert-warning">
+            <strong>Front de Pareto non disponible.</strong><br>
+            Lancez d'abord le calcul depuis <a href="{{ path('app_problem_show', {id: problem.id}) }}">la fiche du problème</a> (bouton <em>Calculer</em>) et vérifiez que le worker asynchrone est actif (<code>worker.bat</code>).
+        </div>
+    {% else %}
+    <form method="post" action="{{ path('app_scenario_compare', {id: problem.id}) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('scenario_' ~ problem.id) }}">
+        <div class="row g-2">
+            {% for m in matrices %}
+                <div class="col-md-4">
+                    <label class="d-flex align-items-start gap-2 p-2" style="border: 1px solid var(--border-color); border-radius: 8px;">
+                        <input type="checkbox" name="scenario_ids[]" value="{{ m.id }}" class="form-check-input mt-1" {% if selected[m.id] ?? false %}checked{% endif %}>
+                        <div>
+                            <div class="fw-semibold">#{{ m.id }} — {{ m.label }}</div>
+                            <small class="text-secondary">CR = {{ m.cr|number_format(3, '.', ' ') }} · λ = [{% for w in m.weights %}{{ w|number_format(2, '.', ' ') }}{% if not loop.last %}, {% endif %}{% endfor %}]</small>
+                        </div>
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-play"></i> Comparer</button>
+            <small class="text-secondary ms-2">Max. {{ maxScenarios }} scénarios.</small>
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+{% if result is not null and result.solutionIds|length > 0 %}
+<div class="dashboard-card">
+    <div class="card-title"><i class="fas fa-table"></i> Tableau des rangs</div>
+    <p class="text-secondary">Les solutions stables dans le top-3 quel que soit le scénario sont mises en évidence.</p>
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle text-center">
+            <thead>
+                <tr>
+                    <th>Solution</th>
+                    {% for name in result.scenarios %}<th>{{ name }}</th>{% endfor %}
+                    <th>Stable top-3 ?</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for idx in 0..(result.solutionIds|length - 1) %}
+                    {% set sid = result.solutionIds[idx] %}
+                    {% set isStable = sid in result.stableTop3 %}
+                    <tr {% if isStable %}style="background: rgba(16,185,129,0.12);"{% endif %}>
+                        <td class="fw-semibold">#{{ sid }}</td>
+                        {% for r in result.rankings[idx] %}
+                            <td>
+                                <span class="badge-custom {% if r == 1 %}badge-success{% elseif r <= 3 %}badge-info{% else %}badge-warning{% endif %}">
+                                    rang {{ r }}
+                                </span>
+                                <small class="d-block text-secondary">score {{ result.scores[idx][loop.index0]|number_format(3, '.', ' ') }}</small>
+                            </td>
+                        {% endfor %}
+                        <td>
+                            {% if isStable %}
+                                <span class="badge-custom badge-success"><i class="fas fa-check"></i> stable</span>
+                            {% else %}—{% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-3">
+        <strong>Solutions stables (top-3 dans tous les scénarios) :</strong>
+        {% for sid in result.stableTop3 %}
+            <span class="badge-custom badge-success ms-1">Solution #{{ sid }}</span>
+        {% else %}
+            <span class="text-secondary ms-2">aucune</span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

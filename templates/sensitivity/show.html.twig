@@ -1,0 +1,96 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sensibilité — {{ problem.name }}{% endblock %}
+
+{% block body %}
+<div class="dashboard-card mb-4">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-sliders-h"></i> Sensibilité — {{ problem.name }}</div>
+            <div class="card-subtitle">
+                Sélectionnez un résultat MCDM de référence, un critère à balayer et l'intervalle de poids.
+                Le calcul s'exécute en arrière-plan.
+            </div>
+        </div>
+        <a href="{{ path('app_problem_show', {id: problem.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+
+    {% if candidates|length == 0 %}
+        <div class="alert alert-warning">
+            <strong>Aucun résultat MCDM n'est encore enregistré.</strong><br>
+            1. Lancez un calcul depuis <a href="{{ path('app_mcdm_show', {id: problem.id}) }}">MCDM &rarr; {{ problem.name }}</a> (TOPSIS, VIKOR, PROMETHEE II ou ELECTRE I).<br>
+            2. Assurez-vous que le worker asynchrone tourne (double-cliquez <code>worker.bat</code> à la racine du projet, ou exécutez <code>php bin/console messenger:consume async</code>).<br>
+            3. Rafraîchissez cette page : le résultat apparaîtra dans la liste déroulante ci-dessous.
+        </div>
+    {% else %}
+    <form method="post" action="{{ path('app_sensitivity_show', {id: problem.id}) }}" class="row g-3">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('sensitivity_' ~ problem.id) }}">
+        <div class="col-md-4">
+            <label class="form-label">Résultat MCDM de référence</label>
+            <select name="mcdm_result_id" class="form-select" required>
+                {% for c in candidates %}
+                    <option value="{{ c.id }}">#{{ c.id }} — {{ c.method|upper }} ({{ c.createdAt|date('d/m/Y H:i') }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Critère à balayer</label>
+            <select name="criterion" class="form-select" required>
+                {% for lbl in problem.objectives %}<option value="{{ loop.index0 }}">f{{ loop.index }} — {{ lbl }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Min λ</label>
+            <input type="number" step="0.01" min="0" max="0.99" name="min" value="0.10" class="form-control" required>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Max λ</label>
+            <input type="number" step="0.01" min="0.01" max="1" name="max" value="0.90" class="form-control" required>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label">Pas</label>
+            <input type="number" step="0.01" min="0.01" max="0.5" name="step" value="0.05" class="form-control" required>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-play"></i> Lancer l'analyse</button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+<div class="dashboard-card">
+    <div class="card-title"><i class="fas fa-history"></i> Historique</div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>#</th><th>MCDM source</th><th>Critère</th><th>Intervalle</th><th>Top-k stable</th><th>Robustesse</th><th>Date</th><th></th></tr></thead>
+            <tbody>
+                {% for a in history %}
+                    <tr>
+                        <td>#{{ a.id }}</td>
+                        <td>
+                            {% if a.mcdmResult %}
+                                #{{ a.mcdmResult.id }} <span class="badge-custom badge-info">{{ a.mcdmResult.method|upper }}</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>f{{ a.criterion + 1 }} — {{ problem.objectiveLabels[a.criterion] ?? '' }}</td>
+                        <td>[{{ a.minValue|number_format(2, '.', ' ') }} ; {{ a.maxValue|number_format(2, '.', ' ') }}] / pas={{ a.step|number_format(2, '.', ' ') }}</td>
+                        <td>{{ a.topK }}</td>
+                        <td>
+                            {% if a.robustSolutions|length > 0 %}
+                                {% set best = a.robustSolutions[0] %}
+                                <span class="badge-custom badge-success" title="{{ a.summary ?? '' }}">
+                                    Sol. #{{ best.solution_id }} — {{ (best.robustness * 100)|number_format(1, '.', ' ') }}%
+                                </span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>{{ a.createdAt|date('d/m/Y H:i') }}</td>
+                        <td><a href="{{ path('app_sensitivity_view', {id: problem.id, analysis: a.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-eye"></i></a></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" class="text-center text-secondary py-4">Aucune analyse</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

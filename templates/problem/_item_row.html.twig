@@ -1,0 +1,36 @@
+<div class="item-row row g-2 mb-2 align-items-end" style="padding: 10px; background: var(--bg-dark); border-radius: 8px;">
+    <div class="col-md-3">
+        <label class="form-label text-secondary" style="font-size:11px;">Article</label>
+        <input name="item_name[]" class="form-control" maxlength="180" value="{{ item ? item.name : '' }}">
+    </div>
+    <div class="col-md-2">
+        <label class="form-label text-secondary" style="font-size:11px;">Poids w</label>
+        <input name="item_weight[]" type="number" step="any" min="0.0001" class="form-control" value="{{ item ? item.weight : '' }}">
+    </div>
+    {% for k in 0..4 %}
+        <div class="col-md-1 obj-cell" data-obj="{{ k }}">
+            <label class="form-label text-secondary" style="font-size:11px;">v{{ k+1 }}</label>
+            <input name="item_values[{{ idx }}][]" type="number" step="any" min="0" max="10000" class="form-control" value="{{ item and item.values[k] is defined ? item.values[k] : '' }}">
+        </div>
+    {% endfor %}
+    <div class="col-md-1">
+        <button type="button" class="btn btn-outline remove-item" style="color: var(--accent-danger);"><i class="fas fa-times"></i></button>
+    </div>
+    {% if problem and problem.fuzzyEnabled %}
+        <div class="col-12">
+            <label class="form-label text-secondary" style="font-size:11px;">Triangulaires flous (l, m, u) par objectif</label>
+            <div class="row g-1">
+                {% for k in 0..4 %}
+                    <div class="col-auto obj-cell" data-obj="{{ k }}">
+                        <div class="input-group" style="width:auto;">
+                            <span class="input-group-text" style="background: var(--bg-card); border-color: var(--border-color); color: var(--text-muted);">f{{ k+1 }}</span>
+                            <input name="item_fuzzy[{{ idx }}][{{ k }}][]" type="number" step="any" class="form-control" style="width:70px;" placeholder="l" value="{{ item and item.fuzzyValues[k][0] is defined ? item.fuzzyValues[k][0] : '' }}">
+                            <input name="item_fuzzy[{{ idx }}][{{ k }}][]" type="number" step="any" class="form-control" style="width:70px;" placeholder="m" value="{{ item and item.fuzzyValues[k][1] is defined ? item.fuzzyValues[k][1] : '' }}">
+                            <input name="item_fuzzy[{{ idx }}][{{ k }}][]" type="number" step="any" class="form-control" style="width:70px;" placeholder="u" value="{{ item and item.fuzzyValues[k][2] is defined ? item.fuzzyValues[k][2] : '' }}">
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>

@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Audit — ADOMC{% endblock %}
+
+{% block body %}
+<div class="dashboard-card mb-4">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-clipboard-list"></i> Journal d'audit</div>
+            <div class="card-subtitle">{% if is_granted('ROLE_ADMIN') %}Toutes les actions — accès administrateur{% else %}Vos actions uniquement{% endif %}</div>
+        </div>
+    </div>
+    <form method="get" class="row g-3 mt-2">
+        <div class="col-md-3">
+            <label class="form-label text-secondary">Action</label>
+            <input name="action" value="{{ action }}" class="form-control" placeholder="ex: mcdm, project, share">
+        </div>
+        {% if is_granted('ROLE_ADMIN') %}
+        <div class="col-md-3">
+            <label class="form-label text-secondary">Email</label>
+            <input name="user_email" value="{{ email }}" class="form-control" placeholder="utilisateur@exemple.org">
+        </div>
+        {% endif %}
+        <div class="col-md-2">
+            <label class="form-label text-secondary">Depuis</label>
+            <input type="date" name="from" value="{{ from ? from|date('Y-m-d') : '' }}" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label text-secondary">Jusqu'à</label>
+            <input type="date" name="to" value="{{ to ? to|date('Y-m-d') : '' }}" class="form-control">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-primary w-100"><i class="fas fa-search"></i> Filtrer</button>
+        </div>
+    </form>
+</div>
+
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div><div class="card-title">Historique</div><div class="card-subtitle">{{ logs|length }} entrée(s)</div></div>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Date</th><th>Action</th><th>Entité</th><th>ID</th><th>Utilisateur</th><th>IP</th><th>Contexte</th></tr></thead>
+            <tbody>
+                {% for l in logs %}
+                    <tr>
+                        <td>{{ l.createdAt|date('d/m/Y H:i:s') }}</td>
+                        <td><span class="badge-custom badge-info">{{ l.action }}</span></td>
+                        <td>{{ l.entityType ?? '—' }}</td>
+                        <td>{{ l.entityId ?? '—' }}</td>
+                        <td>{{ l.userEmail ?? '—' }}</td>
+                        <td><code>{{ l.ipAddress ?? '—' }}</code></td>
+                        <td><pre style="font-size: 11px; margin: 0; color: var(--text-muted);">{{ l.context ? l.context|json_encode(constant('JSON_UNESCAPED_UNICODE')) : '' }}</pre></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="text-center py-4 text-secondary"><i class="fas fa-inbox fa-2x mb-2"></i><br>Aucune entrée</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

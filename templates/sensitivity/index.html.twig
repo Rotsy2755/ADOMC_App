@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Analyse de sensibilité — ADOMC{% endblock %}
+
+{% block body %}
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-sliders-h"></i> Analyse de sensibilité</div>
+            <div class="card-subtitle">Balayage λ<sub>i</sub> ∈ [min, max] avec re-normalisation pour mesurer la stabilité du classement.</div>
+        </div>
+        <a href="{{ path('app_problem_index') }}" class="btn btn-outline btn-sm"><i class="fas fa-list"></i> Problèmes</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Problème</th><th>Projet</th><th>Calculs MCDM</th><th></th></tr></thead>
+            <tbody>
+                {% for p in problems %}
+                    <tr>
+                        <td class="fw-semibold">{{ p.name }}</td>
+                        <td>{{ p.project.name }}</td>
+                        <td><span class="badge-custom badge-info">{{ p.mcdmResults|length }}</span></td>
+                        <td><a href="{{ path('app_sensitivity_show', {id: p.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-play"></i> Sensibilité</a></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4" class="text-center text-secondary py-4">Aucun problème</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

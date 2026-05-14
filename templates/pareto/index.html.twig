@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Front de Pareto — ADOMC{% endblock %}
+
+{% block body %}
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-bezier-curve"></i> Fronts de Pareto</div>
+            <div class="card-subtitle">Sélectionnez un problème pour visualiser son front non dominé.</div>
+        </div>
+        <a href="{{ path('app_problem_index') }}" class="btn btn-outline btn-sm"><i class="fas fa-list"></i> Problèmes</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Problème</th><th>Projet</th><th>Objectifs</th><th>Statut</th><th>Solutions Pareto</th><th></th></tr></thead>
+            <tbody>
+                {% for p in problems %}
+                    {% set nPareto = 0 %}
+                    {% for s in p.solutions %}{% if s.pareto %}{% set nPareto = nPareto + 1 %}{% endif %}{% endfor %}
+                    <tr>
+                        <td class="fw-semibold">{{ p.name }}</td>
+                        <td>{{ p.project.name }}</td>
+                        <td>{{ p.objectiveCount }}</td>
+                        <td>
+                            {% set cls = {'draft':'badge-warning','computing':'badge-info','done':'badge-success','failed':'badge-danger'} %}
+                            <span class="badge-custom {{ cls[p.status] ?? 'badge-info' }}">{{ p.status }}</span>
+                        </td>
+                        <td><span class="badge-custom badge-info">{{ nPareto }}</span></td>
+                        <td><a href="{{ path('app_pareto_show', {id: p.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-eye"></i> Explorer</a></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="text-center text-secondary py-4">Aucun problème disponible</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

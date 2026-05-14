@@ -1,0 +1,110 @@
+{% set isEdit = problem.id is not null %}
+<form method="post" class="problem-form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('problem') }}">
+    <div class="row g-3">
+        {% if not isEdit %}
+        <div class="col-md-6">
+            <label class="form-label">Projet</label>
+            <select name="project_id" class="form-select" required>
+                {% for pr in projects %}
+                    <option value="{{ pr.id }}">{{ pr.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <div class="col-md-6">
+            <label class="form-label">Nom du problème</label>
+            <input name="name" class="form-control" maxlength="180" required value="{{ problem.name }}">
+        </div>
+        <div class="col-12">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="2" maxlength="4000">{{ problem.description }}</textarea>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Capacité W</label>
+            <input type="number" step="any" min="0.0001" name="capacity" class="form-control" required value="{{ problem.capacity ?: '' }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Nombre d'objectifs p</label>
+            <select name="objective_count" id="objective_count" class="form-select">
+                {% for n in 2..5 %}
+                    <option value="{{ n }}" {{ problem.objectiveCount == n ? 'selected' : '' }}>{{ n }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Mode flou (TFN)</label>
+            <select name="fuzzy_enabled" class="form-select">
+                <option value="0" {{ not problem.fuzzyEnabled ? 'selected' : '' }}>Désactivé</option>
+                <option value="1" {{ problem.fuzzyEnabled ? 'selected' : '' }}>Activé (triangular fuzzy)</option>
+            </select>
+        </div>
+    </div>
+
+    <hr class="my-4" style="border-color: var(--border-color);">
+    <h5 class="mb-3">Noms des objectifs</h5>
+    <div id="objective-labels" class="row g-3">
+        {% for idx in 0..(problem.objectiveCount - 1) %}
+            <div class="col-md-3 obj-label">
+                <label class="form-label">f{{ idx + 1 }}</label>
+                <input name="objective_name[]" class="form-control" maxlength="60" value="{{ problem.objectiveLabels[idx] ?? ('f' ~ (idx + 1)) }}">
+            </div>
+        {% endfor %}
+    </div>
+
+    <hr class="my-4" style="border-color: var(--border-color);">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="m-0">Articles n</h5>
+        <button type="button" class="btn btn-outline" id="add-item"><i class="fas fa-plus"></i> Ajouter un article</button>
+    </div>
+
+    <div id="items-container">
+        {% set items = problem.items %}
+        {% if items|length == 0 %}
+            {% set items = [null, null, null] %}
+        {% endif %}
+        {% for item in items %}
+            {% include 'problem/_item_row.html.twig' with {item: item, idx: loop.index0, problem: problem} %}
+        {% endfor %}
+    </div>
+
+    <div class="mt-4">
+        <button class="btn btn-primary"><i class="fas fa-save"></i> {{ isEdit ? 'Enregistrer' : 'Créer' }}</button>
+        <a href="{{ isEdit ? path('app_problem_show', {id: problem.id}) : path('app_problem_index') }}" class="btn btn-outline">Annuler</a>
+    </div>
+</form>
+
+<template id="item-template">
+    {% include 'problem/_item_row.html.twig' with {item: null, idx: '__IDX__', problem: problem} %}
+</template>
+
+<script>
+(function(){
+    const container = document.getElementById('items-container');
+    const tpl = document.getElementById('item-template').innerHTML;
+    let counter = container.querySelectorAll('.item-row').length;
+    document.getElementById('add-item').addEventListener('click', () => {
+        container.insertAdjacentHTML('beforeend', tpl.replace(/__IDX__/g, counter));
+        counter++;
+        refreshVisibility();
+    });
+    container.addEventListener('click', (e) => {
+        if (e.target.closest('.remove-item')) {
+            e.target.closest('.item-row').remove();
+        }
+    });
+    const objCount = document.getElementById('objective_count');
+    function refreshVisibility() {
+        const p = parseInt(objCount.value, 10) || 2;
+        document.querySelectorAll('.obj-label').forEach((el, idx) => {
+            el.style.display = idx < p ? '' : 'none';
+        });
+        document.querySelectorAll('.item-row .obj-cell').forEach((el) => {
+            const idx = parseInt(el.dataset.obj, 10);
+            el.style.display = idx < p ? '' : 'none';
+        });
+    }
+    objCount.addEventListener('change', refreshVisibility);
+    refreshVisibility();
+})();
+</script>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partage public — {{ problem.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body { background: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
+        .dashboard-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .card-title { font-size: 18px; font-weight: 600; color: #e2e8f0; }
+        .card-subtitle { color: #94a3b8; font-size: 14px; }
+        table { color: #e2e8f0; }
+        .badge-custom { padding: 4px 10px; border-radius: 6px; font-size: 12px; }
+        .badge-success { background: rgba(16,185,129,0.2); color: #10b981; }
+        .badge-info { background: rgba(59,130,246,0.2); color: #3b82f6; }
+        .brand { color: #3b82f6; font-weight: 700; }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="brand"><i class="fas fa-project-diagram"></i> ADOMC — Partage public</h3>
+        <small class="text-secondary">{{ link.views }} consultation(s) · expire le {{ link.expiresAt|date('d/m/Y H:i') }}</small>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="card-title">{{ problem.name }}</div>
+        <div class="card-subtitle mb-3">Projet : {{ problem.project.name }} · Capacité : {{ problem.capacity }} · {{ problem.objectiveCount }} objectif(s)</div>
+        <div><strong>Objectifs :</strong>
+            {% for o in problem.objectives %}
+                <span class="badge-custom badge-info">f{{ loop.index }} — {{ o }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="card-title"><i class="fas fa-bezier-curve"></i> Solutions Pareto</div>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Poids total</th>
+                        {% for l in problem.objectives %}<th>f{{ loop.index }} — {{ l }}</th>{% endfor %}
+                        <th>Articles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in solutions %}
+                        <tr>
+                            <td>#{{ s.id }}</td>
+                            <td>{{ s.totalWeight|number_format(2, '.', ' ') }}</td>
+                            {% for v in s.objectiveValues %}<td>{{ v|number_format(2, '.', ' ') }}</td>{% endfor %}
+                            <td><small>{{ s.selectedItemIds|join(', ') }}</small></td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="99" class="text-center">Aucune solution calculée</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="text-center text-secondary small mt-4">
+        Vue publique en lecture seule générée par la plateforme ADOMC.
+    </div>
+</div>
+</body>
+</html>

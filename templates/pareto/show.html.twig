@@ -1,0 +1,106 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ problem.name }} — Front de Pareto{% endblock %}
+
+{% block body %}
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-bezier-curve"></i> Front de Pareto — {{ problem.name }}</div>
+            <div class="card-subtitle">{{ pareto|length }} solution(s) non dominée(s) — projet « {{ problem.project.name }} »</div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ path('app_problem_show', {id: problem.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
+            <a href="{{ path('app_ahp_show', {id: problem.id}) }}" class="btn btn-primary btn-sm"><i class="fas fa-balance-scale"></i> Pondération AHP</a>
+        </div>
+    </div>
+
+    {% if pareto|length == 0 %}
+        <div class="alert alert-warning">Aucune solution Pareto n'a été calculée pour ce problème. Lancez le calcul MOKP depuis la fiche du problème.</div>
+    {% else %}
+        <div id="pareto-chart" style="width:100%; height: 460px;"></div>
+        <div class="table-responsive mt-3">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Algorithme</th>
+                        <th>Poids total</th>
+                        {% for lbl in problem.objectives %}<th>f{{ loop.index }} — {{ lbl }}</th>{% endfor %}
+                        <th>Articles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in pareto %}
+                        <tr>
+                            <td class="fw-semibold">#{{ s.id }}</td>
+                            <td><span class="badge-custom badge-info">{{ s.algo|default('ε-cst') }}</span></td>
+                            <td>{{ s.weight|number_format(2, '.', ' ') }}</td>
+                            {% for v in s.values %}<td>{{ v|number_format(2, '.', ' ') }}</td>{% endfor %}
+                            <td><code>{{ s.items|join(', ') }}</code></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+
+{% if pareto|length > 0 %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    fetch('{{ path('app_pareto_data', {id: problem.id}) }}')
+        .then(r => r.json())
+        .then(data => {
+            const rows = data.pareto || [];
+            const obj = data.objectives || [];
+            const p = obj.length;
+            if (rows.length === 0) return;
+            const ids = rows.map(r => '#' + r.id);
+            if (p === 2) {
+                const x = rows.map(r => r.values[0]);
+                const y = rows.map(r => r.values[1]);
+                Plotly.newPlot('pareto-chart', [{
+                    x: x, y: y, text: ids, mode: 'markers+text', textposition: 'top center',
+                    type: 'scatter', marker: {size: 12, color: '#3b82f6'}
+                }], {
+                    title: 'Front de Pareto',
+                    xaxis: {title: 'f1 — ' + (obj[0] || 'f1'), gridcolor: '#334155'},
+                    yaxis: {title: 'f2 — ' + (obj[1] || 'f2'), gridcolor: '#334155'},
+                    plot_bgcolor: '#0f172a', paper_bgcolor: '#0f172a',
+                    font: {color: '#e2e8f0'}
+                }, {responsive: true});
+            } else if (p >= 3) {
+                const x = rows.map(r => r.values[0]);
+                const y = rows.map(r => r.values[1]);
+                const z = rows.map(r => r.values[2]);
+                Plotly.newPlot('pareto-chart', [{
+                    x: x, y: y, z: z, text: ids, mode: 'markers+text',
+                    type: 'scatter3d', marker: {size: 6, color: '#8b5cf6'}
+                }], {
+                    title: 'Front de Pareto 3D',
+                    scene: {
+                        xaxis: {title: 'f1 — ' + (obj[0] || 'f1')},
+                        yaxis: {title: 'f2 — ' + (obj[1] || 'f2')},
+                        zaxis: {title: 'f3 — ' + (obj[2] || 'f3')}
+                    },
+                    plot_bgcolor: '#0f172a', paper_bgcolor: '#0f172a',
+                    font: {color: '#e2e8f0'}
+                }, {responsive: true});
+            } else {
+                const x = ids;
+                const y = rows.map(r => r.values[0]);
+                Plotly.newPlot('pareto-chart', [{
+                    x: x, y: y, type: 'bar', marker: {color: '#06b6d4'}
+                }], {
+                    title: 'Valeur de f1 par solution',
+                    plot_bgcolor: '#0f172a', paper_bgcolor: '#0f172a',
+                    font: {color: '#e2e8f0'}
+                }, {responsive: true});
+            }
+        });
+});
+</script>
+{% endif %}
+{% endblock %}

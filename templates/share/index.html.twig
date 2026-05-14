@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Liens de partage — ADOMC{% endblock %}
+
+{% block body %}
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-share-alt"></i> Liens de partage</div>
+            <div class="card-subtitle">Liens publics en lecture seule — jeton SHA-256, durée configurable, révocation possible.</div>
+        </div>
+        <a href="{{ path('app_problem_index') }}" class="btn btn-outline btn-sm"><i class="fas fa-list"></i> Problèmes</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>#</th><th>Problème</th><th>Vues</th><th>Expire</th><th>Statut</th><th>Créé</th><th></th></tr></thead>
+            <tbody>
+                {% for l in links %}
+                    <tr>
+                        <td>#{{ l.id }}</td>
+                        <td>{% if l.problem %}{{ l.problem.name }}{% else %}—{% endif %}</td>
+                        <td>{{ l.views }}</td>
+                        <td>{{ l.expiresAt|date('d/m/Y H:i') }}</td>
+                        <td>
+                            {% if l.revoked %}
+                                <span class="badge-custom badge-danger">révoqué</span>
+                            {% elseif l.active %}
+                                <span class="badge-custom badge-success">actif</span>
+                            {% else %}
+                                <span class="badge-custom badge-warning">expiré</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ l.createdAt|date('d/m/Y H:i') }}</td>
+                        <td>
+                            {% if not l.revoked %}
+                                <form method="post" action="{{ path('app_share_revoke', {id: l.id}) }}" style="display:inline;">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('share_revoke_' ~ l.id) }}">
+                                    <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Révoquer ce lien ?');"><i class="fas fa-ban"></i> Révoquer</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="text-center text-secondary py-4">Aucun lien créé</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="alert alert-info mt-3">
+        <i class="fas fa-info-circle"></i> Pour créer un nouveau lien, ouvrez un problème et utilisez le bouton « Partager » de sa fiche.
+        Seul le jeton (non stocké en clair) permet de consulter la page — il est affiché une unique fois à la création.
+    </div>
+</div>
+{% endblock %}

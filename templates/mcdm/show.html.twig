@@ -1,0 +1,142 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}MCDM — {{ problem.name }}{% endblock %}
+
+{% block body %}
+<div class="dashboard-card mb-4">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-layer-group"></i> Calcul MCDM — {{ problem.name }}</div>
+            <div class="card-subtitle">Déclenchez un classement en arrière-plan sur le front de Pareto avec la pondération choisie.</div>
+        </div>
+        <a href="{{ path('app_problem_show', {id: problem.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+
+    {% if matrices|length == 0 %}
+        <div class="alert alert-warning">
+            Aucune pondération AHP enregistrée — commencez par
+            <a href="{{ path('app_ahp_show', {id: problem.id}) }}">saisir une matrice AHP</a>.
+        </div>
+    {% else %}
+    <form method="post" action="{{ path('app_mcdm_show', {id: problem.id}) }}" class="row g-3">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('mcdm_' ~ problem.id) }}">
+        <div class="col-md-4">
+            <label class="form-label">Pondération AHP</label>
+            <select name="ahp_matrix_id" class="form-select" required>
+                {% for m in matrices %}
+                    <option value="{{ m.id }}">#{{ m.id }} — {{ m.label }} (CR={{ m.cr|number_format(3, '.', ' ') }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Méthode</label>
+            <select name="method" class="form-select" id="mcdm-method" onchange="toggleMcdmParams()">
+                {% for m in methods %}<option value="{{ m }}">{{ m|upper }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Normalisation</label>
+            <select name="normalization" class="form-select">
+                {% for n in normalizations %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100"><i class="fas fa-play"></i> Lancer</button>
+        </div>
+
+        <div id="p-vikor" class="row g-2 d-none col-12">
+            <div class="col-md-3">
+                <label class="form-label">ν (VIKOR)</label>
+                <input type="number" step="0.01" min="0" max="1" name="vikor_nu" value="0.5" class="form-control">
+            </div>
+        </div>
+        <div id="p-promethee" class="row g-2 d-none col-12">
+            <div class="col-md-3">
+                <label class="form-label">Type préférence</label>
+                <select name="promethee_type" class="form-select">
+                    <option value="usual">Usuel</option>
+                    <option value="linear">Linéaire</option>
+                    <option value="gaussian">Gaussien</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">p (préférence)</label>
+                <input type="number" step="0.01" name="promethee_p" value="0.5" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">q (indifférence)</label>
+                <input type="number" step="0.01" name="promethee_q" value="0.1" class="form-control">
+            </div>
+        </div>
+        <div id="p-electre" class="row g-2 d-none col-12">
+            <div class="col-md-3">
+                <label class="form-label">Seuil concordance (c)</label>
+                <input type="number" step="0.01" min="0" max="1" name="electre_c" value="0.65" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Seuil discordance (d)</label>
+                <input type="number" step="0.01" min="0" max="1" name="electre_d" value="0.35" class="form-control">
+            </div>
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-history"></i> Historique des calculs MCDM</div>
+            <div class="card-subtitle">Validez une solution pour enrichir le système d'apprentissage inverse.</div>
+        </div>
+        <a href="{{ path('app_preference_suggest', {id: problem.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-brain"></i> Suggestion de poids</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>#</th><th>Méthode</th><th>Norm.</th><th>Top-3</th><th>Recommandée</th><th>Validée</th><th>Date</th><th></th></tr></thead>
+            <tbody>
+                {% for r in history %}
+                    <tr>
+                        <td>#{{ r.id }}</td>
+                        <td><span class="badge-custom badge-info">{{ r.method|upper }}</span></td>
+                        <td><small>{{ r.normalization }}</small></td>
+                        <td>
+                            {% for k in 0..2 %}
+                                {% if r.rankings[k] is defined %}
+                                    <span class="badge-custom badge-success" title="rang {{ r.rankings[k].rank }}">#{{ r.rankings[k].solution_id }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td><strong>Solution #{{ r.recommendedSolutionId ?? '-' }}</strong></td>
+                        <td>
+                            {% if r.chosen %}
+                                <span class="badge-custom badge-success"><i class="fas fa-check"></i> choisie</span>
+                            {% else %}
+                                <form method="post" action="{{ path('app_mcdm_choose', {id: problem.id, result: r.id}) }}" style="display:inline;">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('mcdm_choose_' ~ r.id) }}">
+                                    <button type="submit" class="btn btn-outline btn-sm"><i class="fas fa-check"></i> Valider</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.createdAt|date('d/m/Y H:i') }}</td>
+                        <td>
+                            <a href="{{ path('app_sensitivity_show', {id: problem.id}) }}" class="icon-btn" title="Sensibilité"><i class="fas fa-sliders-h"></i></a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" class="text-center text-secondary py-4">Aucun calcul MCDM effectué</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function toggleMcdmParams() {
+    const m = document.getElementById('mcdm-method').value;
+    document.getElementById('p-vikor').classList.toggle('d-none', m !== 'vikor');
+    document.getElementById('p-promethee').classList.toggle('d-none', m !== 'promethee2');
+    document.getElementById('p-electre').classList.toggle('d-none', m !== 'electre1');
+}
+document.addEventListener('DOMContentLoaded', toggleMcdmParams);
+</script>
+{% endblock %}

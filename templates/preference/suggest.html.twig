@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Suggestion de poids — {{ problem.name }}{% endblock %}
+
+{% block body %}
+<div class="dashboard-card mb-4">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-brain"></i> Apprentissage inverse des préférences</div>
+            <div class="card-subtitle">
+                Recherche d'un vecteur λ ∈ Δ<sub>p</sub> tel que les solutions que vous avez validées atteignent le rang 1 selon TOPSIS
+                (gradient projeté sur le simplexe — Frank-Wolfe, 100 itérations max).
+            </div>
+        </div>
+        <a href="{{ path('app_mcdm_show', {id: problem.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Retour MCDM</a>
+    </div>
+
+    <div class="mb-3">
+        <strong>Solutions validées :</strong>
+        {% for id in chosen %}
+            <span class="badge-custom badge-success ms-1">Solution #{{ id }}</span>
+        {% else %}
+            <span class="text-secondary ms-2">aucune</span>
+        {% endfor %}
+    </div>
+
+    {% if warning %}
+        <div class="alert alert-warning">{{ warning }}</div>
+    {% endif %}
+
+    {% if suggestion is not null and suggestion|length > 0 %}
+        <h5 class="mt-3"><i class="fas fa-check-circle text-success"></i> Poids suggérés</h5>
+        <div class="table-responsive">
+            <table class="table table-sm" style="max-width: 600px;">
+                <thead><tr><th>Critère</th><th>λ suggéré</th></tr></thead>
+                <tbody>
+                    {% for w in suggestion %}
+                        <tr>
+                            <td>f{{ loop.index }} — {{ objectives[loop.index0] ?? '' }}</td>
+                            <td>
+                                <div class="progress"><div class="progress-bar" style="width: {{ (w * 100)|number_format(1, '.', ' ') }}%;"></div></div>
+                                <strong>{{ w|number_format(4, '.', ' ') }}</strong>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    <tr><td><em>Somme</em></td><td><strong>{{ suggestion|reduce((a, b) => a + b, 0)|number_format(4, '.', ' ') }}</strong></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Ces poids sont une <strong>suggestion</strong>. Vous pouvez les saisir manuellement
+            dans la <a href="{{ path('app_ahp_show', {id: problem.id}) }}">matrice AHP</a> ou les utiliser comme scénario de référence.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

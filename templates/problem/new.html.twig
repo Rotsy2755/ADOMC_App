@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouveau problème — ADOMC{% endblock %}
+{% block body %}
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-puzzle-piece"></i> Nouveau problème MOKP</div>
+            <div class="card-subtitle">Saisissez n articles et p objectifs (max w ≤ 10000)</div>
+        </div>
+        <a href="{{ path('app_problem_index') }}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+    {% include 'problem/_form.html.twig' %}
+</div>
+{% endblock %}

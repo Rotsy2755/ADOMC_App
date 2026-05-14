@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ project.name }} — ADOMC{% endblock %}
+{% block body %}
+<div class="dashboard-card mb-4">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-folder"></i> {{ project.name }}</div>
+            <div class="card-subtitle">Créé le {{ project.createdAt|date('d/m/Y H:i') }} • Maj {{ project.updatedAt|date('d/m/Y H:i') }}</div>
+        </div>
+        <div>
+            <a href="{{ path('app_project_edit', {id: project.id}) }}" class="btn btn-outline"><i class="fas fa-edit"></i> Éditer</a>
+            <a href="{{ path('app_project_index') }}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Retour</a>
+        </div>
+    </div>
+    {% if project.description %}
+        <p class="text-secondary">{{ project.description|nl2br }}</p>
+    {% endif %}
+</div>
+
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div><div class="card-title">Problèmes MOKP du projet</div><div class="card-subtitle">{{ project.problems|length }}</div></div>
+        <a href="{{ path('app_problem_new', {project_id: project.id}) }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nouveau problème</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Nom</th><th>Capacité W</th><th>Objectifs p</th><th>Statut</th><th>Progression</th><th></th></tr></thead>
+            <tbody>
+                {% for pb in project.problems %}
+                    <tr>
+                        <td class="fw-semibold">{{ pb.name }}</td>
+                        <td>{{ pb.capacity }}</td>
+                        <td>{{ pb.objectiveCount }}</td>
+                        <td>
+                            {% set cls = {'draft':'badge-warning','computing':'badge-info','done':'badge-success','failed':'badge-danger'} %}
+                            <span class="badge-custom {{ cls[pb.status] ?? 'badge-info' }}">{{ pb.status }}</span>
+                        </td>
+                        <td style="min-width: 140px;">
+                            <div class="progress"><div class="progress-bar" style="width: {{ pb.progress }}%;"></div></div>
+                            <small class="text-muted">{{ pb.progress }}%</small>
+                        </td>
+                        <td><a href="{{ path('app_problem_show', {id: pb.id}) }}" class="btn btn-outline btn-sm"><i class="fas fa-eye"></i></a></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="text-center py-4 text-secondary">Aucun problème dans ce projet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouveau projet — ADOMC{% endblock %}
+{% block body %}
+<div class="dashboard-card">
+    <div class="card-header-flex">
+        <div>
+            <div class="card-title"><i class="fas fa-folder-plus"></i> Nouveau projet</div>
+            <div class="card-subtitle">Un projet regroupe plusieurs problèmes MOKP</div>
+        </div>
+        <a href="{{ path('app_project_index') }}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Retour</a>
+    </div>
+    <form method="post" class="row g-3">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('project') }}">
+        <div class="col-md-6">
+            <label class="form-label">Nom</label>
+            <input name="name" required maxlength="180" class="form-control" value="{{ project.name }}">
+        </div>
+        <div class="col-12">
+            <label class="form-label">Description</label>
+            <textarea name="description" rows="4" class="form-control" maxlength="4000">{{ project.description }}</textarea>
+        </div>
+        <div class="col-12">
+            <button class="btn btn-primary"><i class="fas fa-save"></i> Créer</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
